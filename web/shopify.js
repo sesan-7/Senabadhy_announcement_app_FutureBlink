@@ -16,6 +16,8 @@ const billingConfig = {
   },
 };
 
+const HOST = process.env.HOST?.replace(/https?:\/\//, "");
+
 const shopify = shopifyApp({
   api: {
     apiVersion: LATEST_API_VERSION,
