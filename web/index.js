@@ -15,12 +15,18 @@ import mongoose from "mongoose";
 import Announcement from "./models/Announcement.js";
 
 // Connect to MongoDB
-const mongoURI = process.env.MONGO_URI || process.env.MONGO_URL || "mongodb://localhost:27017/announcement-app";
-mongoose.connect(mongoURI).then(() => {
-  console.log("Connected to MongoDB!");
-}).catch((err) => {
-  console.error("MongoDB connection error:", err);
-});
+const mongoURI =
+  process.env.MONGO_URI ||
+  process.env.MONGO_URL ||
+  "mongodb://localhost:27017/announcement-app";
+mongoose
+  .connect(mongoURI)
+  .then(() => {
+    console.log("Connected to MongoDB!");
+  })
+  .catch((err) => {
+    console.error("MongoDB connection error:", err);
+  });
 
 const PORT = parseInt(
   process.env.BACKEND_PORT || process.env.PORT || "3000",
@@ -87,10 +93,14 @@ app.post("/api/products", async (_req, res) => {
 // GET announcement from DB
 app.get("/api/announcement", async (_req, res) => {
   const session = res.locals.shopify.session;
-  
+
   try {
-    const announcement = await Announcement.findOne({ shop: session.shop }).sort({ timestamp: -1 });
-    res.status(200).send({ announcement: announcement ? announcement.text : "" });
+    const announcement = await Announcement.findOne({
+      shop: session.shop,
+    }).sort({ timestamp: -1 });
+    res
+      .status(200)
+      .send({ announcement: announcement ? announcement.text : "" });
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : String(err);
     res.status(500).send({ error: errorMsg });
@@ -162,8 +172,13 @@ app.post("/api/announcement", async (req, res) => {
     });
 
     if (mutationRes.data.metafieldsSet.userErrors.length > 0) {
-      console.error("Metafield saving errors:", mutationRes.data.metafieldsSet.userErrors);
-      return res.status(400).send({ error: "Failed to save metafield to Shopify." });
+      console.error(
+        "Metafield saving errors:",
+        mutationRes.data.metafieldsSet.userErrors
+      );
+      return res
+        .status(400)
+        .send({ error: "Failed to save metafield to Shopify." });
     }
 
     res.status(200).send({ success: true, text });
