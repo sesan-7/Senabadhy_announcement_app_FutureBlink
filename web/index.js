@@ -206,7 +206,6 @@
 // });
 
 // app.listen(PORT);
-
 // @ts-check
 import * as dotenv from "dotenv";
 dotenv.config();
@@ -260,28 +259,18 @@ app.get(
   shopify.redirectToShopifyOrAppRoot()
 );
 
-// 🔥 IMPORTANT FIX: Root route must trigger OAuth
-// app.get("/", (req, res) => {
-//   const { shop } = req.query;
-
-//   if (!shop) {
-//     return res.status(400).send("No shop provided");
-//   }
-
-//   return res.redirect(`${shopify.config.auth.path}?shop=${shop}`);
-// });
-
+// Root route
 app.get("/", async (req, res, next) => {
   const { shop } = req.query;
 
-  // If shop is provided, start OAuth
   if (shop) {
     return res.redirect(`${shopify.config.auth.path}?shop=${shop}`);
   }
 
-  // If no shop, continue to next middleware (ensureInstalledOnShop)
-  return next();
+  // Health check safe response
+  return res.status(200).send("App is running");
 });
+
 // --------------------
 // Webhooks
 // --------------------
@@ -292,28 +281,16 @@ app.post(
 );
 
 // --------------------
+// JSON Middleware
+// --------------------
+
+app.use(express.json());
+
+// --------------------
 // Authenticated API Routes
 // --------------------
 
 app.use("/api/*", shopify.validateAuthenticatedSession());
-app.use("/*", shopify.ensureInstalledOnShop(), async (req, res) => {
-  const shop = req.query.shop || res.locals.shopify?.session?.shop;
-
-  if (!shop) {
-    return res.status(400).send("Shop not found");
-  }
-
-  return res
-    .status(200)
-    .set("Content-Type", "text/html")
-    .send(
-      readFileSync(join(STATIC_PATH, "index.html"))
-        .toString()
-        .replace("%VITE_SHOPIFY_API_KEY%", process.env.SHOPIFY_API_KEY || "")
-    );
-});
-
-app.use(express.json());
 
 // Product Count
 app.get("/api/products/count", async (_req, res) => {
@@ -369,25 +346,23 @@ app.post("/api/announcement", async (req, res) => {
   const { text } = req.body;
 
   try {
-    // Save to MongoDB
     const announcement = new Announcement({ shop: session.shop, text });
     await announcement.save();
 
-    // Update Shopify metafield
     const client = new shopify.api.clients.Graphql({ session });
 
-    const shopQuery = `
+    const shopRes = await client.request(`
       query {
         shop {
           id
         }
       }
-    `;
+    `);
 
-    const shopRes = await client.request(shopQuery);
     const shopId = shopRes.data.shop.id;
 
-    const metafieldMutation = `
+    await client.request(
+      `
       mutation MetafieldsSet($metafields: [MetafieldsSetInput!]!) {
         metafieldsSet(metafields: $metafields) {
           userErrors {
@@ -395,21 +370,21 @@ app.post("/api/announcement", async (req, res) => {
           }
         }
       }
-    `;
-
-    await client.request(metafieldMutation, {
-      variables: {
-        metafields: [
-          {
-            key: "announcement",
-            namespace: "my_app",
-            ownerId: shopId,
-            type: "single_line_text_field",
-            value: text,
-          },
-        ],
-      },
-    });
+    `,
+      {
+        variables: {
+          metafields: [
+            {
+              key: "announcement",
+              namespace: "my_app",
+              ownerId: shopId,
+              type: "single_line_text_field",
+              value: text,
+            },
+          ],
+        },
+      }
+    );
 
     res.status(200).send({ success: true, text });
   } catch (err) {
@@ -419,13 +394,24 @@ app.post("/api/announcement", async (req, res) => {
 });
 
 // --------------------
-// Frontend Serving
+// Frontend Serving (SAFE)
 // --------------------
 
 app.use(shopify.cspHeaders());
 app.use(serveStatic(STATIC_PATH, { index: false }));
 
-app.use("/*", shopify.ensureInstalledOnShop(), async (_req, res) => {
+app.get("/*", async (req, res, next) => {
+  const { shop, host } = req.query;
+
+  // Prevent crash when no shop (Render health check)
+  if (!shop && !host) {
+    return res.status(200).send("App is running");
+  }
+
+  return shopify.ensureInstalledOnShop()(req, res, next);
+});
+
+app.get("/*", async (_req, res) => {
   return res
     .status(200)
     .set("Content-Type", "text/html")
