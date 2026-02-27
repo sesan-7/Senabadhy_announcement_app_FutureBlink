@@ -261,16 +261,27 @@ app.get(
 );
 
 // 🔥 IMPORTANT FIX: Root route must trigger OAuth
-app.get("/", (req, res) => {
+// app.get("/", (req, res) => {
+//   const { shop } = req.query;
+
+//   if (!shop) {
+//     return res.status(400).send("No shop provided");
+//   }
+
+//   return res.redirect(`${shopify.config.auth.path}?shop=${shop}`);
+// });
+
+app.get("/", async (req, res, next) => {
   const { shop } = req.query;
 
-  if (!shop) {
-    return res.status(400).send("No shop provided");
+  // If shop is provided, start OAuth
+  if (shop) {
+    return res.redirect(`${shopify.config.auth.path}?shop=${shop}`);
   }
 
-  return res.redirect(`${shopify.config.auth.path}?shop=${shop}`);
+  // If no shop, continue to next middleware (ensureInstalledOnShop)
+  return next();
 });
-
 // --------------------
 // Webhooks
 // --------------------
