@@ -225,15 +225,28 @@ import Announcement from "./models/Announcement.js";
 // --------------------
 // MongoDB Connection
 // --------------------
-const mongoURI =
-  process.env.MONGO_URI ||
-  process.env.MONGO_URL ||
-  "mongodb://localhost:27017/announcement-app";
+// const mongoURI =
+//   process.env.MONGO_URI ||
+//   process.env.MONGO_URL ||
+//   "mongodb://localhost:27017/announcement-app";
+
+// mongoose
+//   .connect(mongoURI)
+//   .then(() => console.log("Connected to MongoDB!"))
+//   .catch((err) => console.error("MongoDB connection error:", err));
+
+if (!process.env.MONGO_URI) {
+  console.error("❌ MONGO_URI is not defined in environment variables");
+  process.exit(1);
+}
 
 mongoose
-  .connect(mongoURI)
-  .then(() => console.log("Connected to MongoDB!"))
-  .catch((err) => console.error("MongoDB connection error:", err));
+  .connect(process.env.MONGO_URI)
+  .then(() => console.log("✅ Connected to MongoDB"))
+  .catch((err) => {
+    console.error("❌ MongoDB connection error:", err);
+    process.exit(1);
+  });
 
 // const PORT = parseInt(
 //   process.env.BACKEND_PORT || process.env.PORT || "3000",
