@@ -235,10 +235,12 @@ mongoose
   .then(() => console.log("Connected to MongoDB!"))
   .catch((err) => console.error("MongoDB connection error:", err));
 
-const PORT = parseInt(
-  process.env.BACKEND_PORT || process.env.PORT || "3000",
-  10
-);
+// const PORT = parseInt(
+//   process.env.BACKEND_PORT || process.env.PORT || "3000",
+//   10
+// );
+
+const PORT = process.env.PORT || 3000;
 
 const STATIC_PATH =
   process.env.NODE_ENV === "production"
@@ -271,20 +273,20 @@ app.get(
 //   return res.status(200).send("App is running");
 // });
 
-app.get("/", async (req, res) => {
+app.get("/", async (req, res, next) => {
   const { shop, host } = req.query;
 
   // If no shop param, this is probably Render health check
-  if (!shop) {
+  if (!shop && !host) {
     return res.status(200).send("App is running");
   }
 
   // If embedded app without host, redirect to OAuth
-  if (!host) {
+  if (shop && !host) {
     return res.redirect(`${shopify.config.auth.path}?shop=${shop}`);
   }
 
-  return shopify.ensureInstalledOnShop()(req, res);
+  next();
 });
 
 // --------------------
@@ -416,18 +418,7 @@ app.post("/api/announcement", async (req, res) => {
 app.use(shopify.cspHeaders());
 app.use(serveStatic(STATIC_PATH, { index: false }));
 
-app.get("/*", async (req, res, next) => {
-  const { shop, host } = req.query;
-
-  // Prevent crash when no shop (Render health check)
-  if (!shop && !host) {
-    return res.status(200).send("App is running");
-  }
-
-  return shopify.ensureInstalledOnShop()(req, res, next);
-});
-
-app.get("/*", async (_req, res) => {
+app.get("/*", shopify.ensureInstalledOnShop(), async (_req, res) => {
   return res
     .status(200)
     .set("Content-Type", "text/html")
