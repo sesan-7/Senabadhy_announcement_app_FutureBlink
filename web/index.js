@@ -218,6 +218,7 @@ import serveStatic from "serve-static";
 import shopify from "./shopify.js";
 import productCreator from "./product-creator.js";
 import PrivacyWebhookHandlers from "./privacy.js";
+import path from "path";
 
 import mongoose from "mongoose";
 import Announcement from "./models/Announcement.js";
@@ -427,16 +428,32 @@ app.post("/api/announcement", async (req, res) => {
 // --------------------
 // Frontend Serving (SAFE)
 // --------------------
+// const STATIC_PATH = path.join(process.cwd(), "web/frontend/dist");
+// app.use(shopify.cspHeaders());
+// app.use(serveStatic(STATIC_PATH, { index: false }));
+
+// app.get("/*", shopify.ensureInstalledOnShop(), async (_req, res) => {
+//   return res
+//     .status(200)
+//     .set("Content-Type", "text/html")
+//     .send(
+//       readFileSync(join(STATIC_PATH, "index.html"))
+//         .toString()
+//         .replace("%VITE_SHOPIFY_API_KEY%", process.env.SHOPIFY_API_KEY || "")
+//     );
+// });
 
 app.use(shopify.cspHeaders());
 app.use(serveStatic(STATIC_PATH, { index: false }));
 
 app.get("/*", shopify.ensureInstalledOnShop(), async (_req, res) => {
+  const indexPath = path.join(STATIC_PATH, "index.html");
+
   return res
     .status(200)
     .set("Content-Type", "text/html")
     .send(
-      readFileSync(join(STATIC_PATH, "index.html"))
+      readFileSync(indexPath)
         .toString()
         .replace("%VITE_SHOPIFY_API_KEY%", process.env.SHOPIFY_API_KEY || "")
     );
