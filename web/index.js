@@ -296,6 +296,22 @@ app.post(
 // --------------------
 
 app.use("/api/*", shopify.validateAuthenticatedSession());
+app.use("/*", shopify.ensureInstalledOnShop(), async (req, res) => {
+  const shop = req.query.shop || res.locals.shopify?.session?.shop;
+
+  if (!shop) {
+    return res.status(400).send("Shop not found");
+  }
+
+  return res
+    .status(200)
+    .set("Content-Type", "text/html")
+    .send(
+      readFileSync(join(STATIC_PATH, "index.html"))
+        .toString()
+        .replace("%VITE_SHOPIFY_API_KEY%", process.env.SHOPIFY_API_KEY || "")
+    );
+});
 
 app.use(express.json());
 
