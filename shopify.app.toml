@@ -2,7 +2,7 @@
 
 client_id = "8a40411c356acaa8571a2e2244685881"
 name = "announcement-app-test"
-application_url = "https://example.com"
+application_url = "https://announcement-app-z99h.onrender.com"
 embedded = true
 
 [build]
@@ -17,4 +17,4 @@ api_version = "2026-04"
 scopes =  "write_products,read_products"
 
 [auth]
-redirect_urls = [ "https://example.com/api/auth" ]
+redirect_urls = [ "https://announcement-app-z99h.onrender.com/api/auth/callback" ]
