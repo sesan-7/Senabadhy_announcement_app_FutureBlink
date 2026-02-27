@@ -260,15 +260,31 @@ app.get(
 );
 
 // Root route
-app.get("/", async (req, res, next) => {
-  const { shop } = req.query;
+// app.get("/", async (req, res, next) => {
+//   const { shop } = req.query;
 
-  if (shop) {
+//   if (shop) {
+//     return res.redirect(`${shopify.config.auth.path}?shop=${shop}`);
+//   }
+
+//   // Health check safe response
+//   return res.status(200).send("App is running");
+// });
+
+app.get("/", async (req, res) => {
+  const { shop, host } = req.query;
+
+  // If no shop param, this is probably Render health check
+  if (!shop) {
+    return res.status(200).send("App is running");
+  }
+
+  // If embedded app without host, redirect to OAuth
+  if (!host) {
     return res.redirect(`${shopify.config.auth.path}?shop=${shop}`);
   }
 
-  // Health check safe response
-  return res.status(200).send("App is running");
+  return shopify.ensureInstalledOnShop()(req, res);
 });
 
 // --------------------
